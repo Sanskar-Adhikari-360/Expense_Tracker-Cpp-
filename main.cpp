@@ -94,6 +94,16 @@ class ExpenseClass{
         std::cout << "\n";
         return 0;
         }
+
+
+        // Expenses view garna ko lagi
+        void viewAll() {
+            char* err = nullptr;
+                if (sqlite3_exec(db, "SELECT * FROM expenses;", callback, nullptr, &err) != SQLITE_OK) {
+                    std::cerr << "Select error: " << (err ? err : "unknown") << "\n";
+                    sqlite3_free(err);
+                }
+            }
 };
 
 
@@ -128,7 +138,7 @@ int main() {
                 break;
             }
             case 2: {
-
+                obj.viewAll();
                 break;
             }
             case 3:
