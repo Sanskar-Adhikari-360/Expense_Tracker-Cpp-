@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include "database.h"
+#include<limits>
 
 // bool insertExpense(double amount, const std::string& category,
 //                    const std::string& description, const std::string& date) {
@@ -53,18 +54,19 @@ class ExpenseClass{
             std::cout<<"Enter amount: ";
             std::cin>>amount;
 
-            std::cout<<"Enter catrgory (Food/Groceries/Travel): ";
-            std::cin>>category;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+            std::cout<<"Enter category (Food/Groceries/Travel): ";
+            std::getline(std::cin, category);
 
             std::cout<<"Enter description: ";
-            std::cin>>description;
+            std::getline(std::cin,description);
 
             std::cout<<"Enter date (YYYY/MM/DD): ";
-            std::cin>>date;
+            std::getline(std::cin, date);
 
-            const char* sql =
-            "INSERT INTO expenses(amount, category, description, date) VALUES(?, ?, ?, ?);";
-
+        const char* sql = "INSERT INTO expenses(amount, category, description, date) VALUES(?,?,?,?)";
+        
         sqlite3_stmt* stmt;
 
         if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
@@ -104,6 +106,20 @@ class ExpenseClass{
                     sqlite3_free(err);
                 }
             }
+        
+        
+        void deleteExpense(){
+            int c;
+            std::cout<<"Enter the expense id to delete: ";
+            std::cin>>c;
+            const char* sql = "DELETE FROM expenses WHERE id = ?;";
+            sqlite3_stmt* stmt;
+            sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
+            sqlite3_bind_int(stmt, 1, c);
+            sqlite3_step(stmt);
+            sqlite3_changes(db);
+            sqlite3_finalize(stmt);
+        }
 };
 
 
@@ -123,11 +139,12 @@ int main() {
         std::cout << "\n--- Expense Manager ---\n";
         std::cout << "1. Add Expense\n";
         std::cout << "2. View All Expense\n";
-        std::cout << "3. Exit\n";
+        std::cout << "3. Delete Expense\n";
+        std::cout << "4. Exit\n";
         std::cout << "Choose an option: ";
         std::cin >> choice;
 
-        if (choice == 3) {
+        if (choice == 4) {
             std::cout << "Exiting program...\n";
             break;
         }
@@ -142,7 +159,7 @@ int main() {
                 break;
             }
             case 3:
-                
+                obj.deleteExpense();
                 break;
             case 4: {
 
