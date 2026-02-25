@@ -2,6 +2,7 @@
 #include <string>
 #include "database.h"
 #include<limits>
+#include <fstream>
 
 // bool insertExpense(double amount, const std::string& category,
 //                    const std::string& description, const std::string& date) {
@@ -120,6 +121,33 @@ class ExpenseClass{
             sqlite3_changes(db);
             sqlite3_finalize(stmt);
         }
+
+        void exportToCSV(){
+            std::ofstream file ("expense.csv");
+            if (!file.is_open()){
+                std::cout<<"Failed to create CSV file \n";
+                return;
+            }
+            file << "Id,amount,category,description,date\n";
+            const char* sql = "SELECT * FROM expenses";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db,sql,-1,&stmt,nullptr) != SQLITE_OK)
+            {
+                std::cout<<"Query Failed\n";
+                return;
+            }
+            while (sqlite3_step(stmt) == SQLITE_ROW)
+            {
+                file<<sqlite3_column_int(stmt, 0) << ","
+            << sqlite3_column_double(stmt, 1) << ","
+            << sqlite3_column_text(stmt, 2) << ","
+            << sqlite3_column_text(stmt, 3) << ","
+            << sqlite3_column_text(stmt, 4) << "\n";
+            }
+            sqlite3_finalize(stmt);
+            file.close();
+            std::cout<<"Expenses exported to CSV";  
+        }
 };
 
 
@@ -140,11 +168,12 @@ int main() {
         std::cout << "1. Add Expense\n";
         std::cout << "2. View All Expense\n";
         std::cout << "3. Delete Expense\n";
-        std::cout << "4. Exit\n";
+        std::cout << "4. Export expense to CSV\n";    
+        std::cout << "5. Exit\n";
         std::cout << "Choose an option: ";
         std::cin >> choice;
 
-        if (choice == 4) {
+        if (choice == 5) {
             std::cout << "Exiting program...\n";
             break;
         }
@@ -162,7 +191,7 @@ int main() {
                 obj.deleteExpense();
                 break;
             case 4: {
-
+                obj.exportToCSV();
                 break;
             }
             default:
