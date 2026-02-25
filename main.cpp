@@ -2,6 +2,7 @@
 #include <string>
 #include "database.h"
 #include<limits>
+#include <iomanip>
 #include <fstream>
 
 // bool insertExpense(double amount, const std::string& category,
@@ -136,6 +137,7 @@ class ExpenseClass{
                 std::cout<<"Query Failed\n";
                 return;
             }
+            file << std::fixed << std::setprecision(2);
             while (sqlite3_step(stmt) == SQLITE_ROW)
             {
                 file<<sqlite3_column_int(stmt, 0) << ","
@@ -147,6 +149,46 @@ class ExpenseClass{
             sqlite3_finalize(stmt);
             file.close();
             std::cout<<"Expenses exported to CSV";  
+        }
+        void exportToJSON(){
+            std::ofstream file ("expense.json");
+            if (!file.is_open()){
+                std::cout<<"Failed to create JSON file \n";
+                return;
+            }
+            const char* sql = "SELECT * FROM expenses";
+            sqlite3_stmt* stmt;
+            if (sqlite3_prepare_v2(db,sql,-1,&stmt,nullptr) != SQLITE_OK)
+            {
+                std::cout<<"Query Failed\n";
+                return;
+            }
+           file << "[\n";
+           bool firstComma = true;
+           file << std::fixed << std::setprecision(2);
+           while (sqlite3_step(stmt) == SQLITE_ROW)
+           {
+                if (!firstComma)
+                {
+                    file << ",\n";
+                }
+                firstComma = false;
+
+                file << "  {\n";
+                file << "    \"id\": " << sqlite3_column_int(stmt, 0) << ",\n";
+                file << "    \"amount\": " << sqlite3_column_double(stmt, 1) << ",\n";
+                file << "    \"category\": \"" << sqlite3_column_text(stmt, 2) << "\",\n";
+                file << "    \"description\": \"" << sqlite3_column_text(stmt, 3) << "\",\n";
+                file << "    \"date\": \"" << sqlite3_column_text(stmt, 4) << "\"\n";
+                file << "  }";
+                
+           }
+           file<<"\n]\n";
+           sqlite3_finalize(stmt);
+           file.close();
+
+           std::cout<<"Expenses exported to expense.json";
+            
         }
 };
 
@@ -168,12 +210,13 @@ int main() {
         std::cout << "1. Add Expense\n";
         std::cout << "2. View All Expense\n";
         std::cout << "3. Delete Expense\n";
-        std::cout << "4. Export expense to CSV\n";    
-        std::cout << "5. Exit\n";
+        std::cout << "4. Export expense to CSV\n";
+        std::cout << "5. Export expense to JSON\n";  
+        std::cout << "6. Exit\n";
         std::cout << "Choose an option: ";
         std::cin >> choice;
 
-        if (choice == 5) {
+        if (choice == 6) {
             std::cout << "Exiting program...\n";
             break;
         }
@@ -192,6 +235,10 @@ int main() {
                 break;
             case 4: {
                 obj.exportToCSV();
+                break;
+            }
+            case 5: {
+                obj.exportToJSON();
                 break;
             }
             default:
