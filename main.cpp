@@ -190,6 +190,16 @@ class ExpenseClass{
            std::cout<<"Expenses exported to expense.json";
             
         }
+
+        void plotGraph(){
+            std::cout<< "Generating graphs....\n";
+            exportToCSV();
+            int result = system("python plot_expenses.py");
+            if (result != 0) {
+                std::cout << "Error running Python script.\n";
+                std::cout << "Make sure Python is installed and added to PATH.\n";
+            }
+        }
 };
 
 
@@ -211,12 +221,13 @@ int main() {
         std::cout << "2. View All Expense\n";
         std::cout << "3. Delete Expense\n";
         std::cout << "4. Export expense to CSV\n";
-        std::cout << "5. Export expense to JSON\n";  
-        std::cout << "6. Exit\n";
+        std::cout << "5. Export expense to JSON\n";
+        std::cout << "6. Plot graph\n";  
+        std::cout << "7. Exit\n";
         std::cout << "Choose an option: ";
         std::cin >> choice;
 
-        if (choice == 6) {
+        if (choice == 7) {
             std::cout << "Exiting program...\n";
             break;
         }
@@ -239,6 +250,10 @@ int main() {
             }
             case 5: {
                 obj.exportToJSON();
+                break;
+            }
+            case 6: {
+                obj.plotGraph();
                 break;
             }
             default:
