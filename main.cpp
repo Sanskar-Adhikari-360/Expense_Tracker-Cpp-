@@ -1,271 +1,207 @@
 #include <iostream>
 #include <string>
-#include "database.h"
-#include<limits>
+#include <limits>
 #include <iomanip>
 #include <fstream>
+#include "database.h"
 
-// bool insertExpense(double amount, const std::string& category,
-//                    const std::string& description, const std::string& date) {
-//     const char* sql = "INSERT INTO expenses(amount, category, description, date) VALUES(?, ?, ?, ?);";
-//     sqlite3_stmt* stmt = nullptr;
+class ExpenseManager {
+public:
+    void addExpense() {
+        double amount;
+        std::string category, description, date;
 
-//     if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-//         std::cerr << "Prepare failed: " << sqlite3_errmsg(db) << "\n";
-//         return false;
-//     }
+        std::cout << "Enter amount: ";
+        std::cin >> amount;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');     // this code is to prevent displaying of numbers in scientific notation
 
-//     sqlite3_bind_double(stmt, 1, amount);
-//     sqlite3_bind_text(stmt, 2, category.c_str(), -1, SQLITE_TRANSIENT);
-//     sqlite3_bind_text(stmt, 3, description.c_str(), -1, SQLITE_TRANSIENT);
-//     sqlite3_bind_text(stmt, 4, date.c_str(), -1, SQLITE_TRANSIENT);
+        // getline(...) is to allow spaces in our input
 
-//     int rc = sqlite3_step(stmt);
-//     if (rc != SQLITE_DONE) {
-//         std::cerr << "Insert failed: " << sqlite3_errmsg(db) << "\n";
-//         sqlite3_finalize(stmt);
-//         return false;
-//     }
+        std::cout << "Enter category (Food/Groceries/Travel): ";
+        std::getline(std::cin, category);
 
-//     sqlite3_finalize(stmt);
-//     return true;
-// }
+        std::cout << "Enter description: ";
+        std::getline(std::cin, description);
 
-// int callback(void* , int argc, char** argv, char** colName) {
-//     for (int i = 0; i < argc; ++i) {
-//         std::cout << (colName[i] ? colName[i] : "") << ": " << (argv[i] ? argv[i] : "NULL") << " | ";
-//     }
-//     std::cout << "\n";
-//     return 0;
-// }
+        std::cout << "Enter date (YYYY/MM/DD): ";
+        std::getline(std::cin, date);
 
-// void viewAll() {
-//     char* err = nullptr;
-//     if (sqlite3_exec(db, "SELECT * FROM expenses;", callback, nullptr, &err) != SQLITE_OK) {
-//         std::cerr << "Select error: " << (err ? err : "unknown") << "\n";
-//         sqlite3_free(err);
-//     }
-// }
+        const char* sql = "INSERT INTO expenses(amount, category, description, date) VALUES(?,?,?,?)"; // the VALUES(?,?,?,?) is the placeholder for our actual values   and our 'sql' is actually a constant read only pointer
+        sqlite3_stmt* stmt; // sqlite3_stmt is a sqlite3 libary function that represents compiled version of sql query that sqlite can execute  and stmt is the pointer that stores the memory address of our prepeared SQL statment
 
-class ExpenseClass{
-  public:
-        void addexpense(){
-            double amount;
-            std::string category, description, date;
-            
-            std::cout<<"Enter amount: ";
-            std::cin>>amount;
-
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-            std::cout<<"Enter category (Food/Groceries/Travel): ";
-            std::getline(std::cin, category);
-
-            std::cout<<"Enter description: ";
-            std::getline(std::cin,description);
-
-            std::cout<<"Enter date (YYYY/MM/DD): ";
-            std::getline(std::cin, date);
-
-        const char* sql = "INSERT INTO expenses(amount, category, description, date) VALUES(?,?,?,?)";
-        
-        sqlite3_stmt* stmt;
-
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
-            std::cout << "Failed to prepare statement\n";
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) { // turns sql string into a prepeared statment
+            std::cerr << "Failed to prepare statement\n";
             return;
         }
 
-        sqlite3_bind_double(stmt, 1, amount);
-        sqlite3_bind_text(stmt, 2, category.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 3, description.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_text(stmt, 4, date.c_str(), -1, SQLITE_TRANSIENT);
 
-        if (sqlite3_step(stmt) != SQLITE_DONE) {
-            std::cout << "Failed to add expense\n";
-        } else {
+        // binds our values to our placeholder VALUES(?,?,?,?)
+        sqlite3_bind_double(stmt, 1, amount);
+        sqlite3_bind_text(stmt, 2, category.c_str(),    -1, SQLITE_TRANSIENT); // SQLITE_TRANSIENT tells to make copy of our string basically
+        sqlite3_bind_text(stmt, 3, description.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text(stmt, 4, date.c_str(),        -1, SQLITE_TRANSIENT);
+
+        if (sqlite3_step(stmt) != SQLITE_DONE)  // executes the SQL query
+            std::cerr << "Failed to add expense\n";
+        else
             std::cout << "Expense added successfully!\n";
+
+        sqlite3_finalize(stmt); // frees allocated memory basically
+    }
+
+    void viewAll() {
+        char* err = nullptr;
+        if (sqlite3_exec(db, "SELECT * FROM expenses;", callback, nullptr, &err) != SQLITE_OK) {
+            std::cerr << "Select error: " << (err ? err : "unknown") << "\n";
+            sqlite3_free(err); // frees the memory allocated for the error message
+        }  
+    }
+
+    void deleteExpense() {
+        int id;
+        std::cout << "Enter the expense ID to delete: ";
+        std::cin >> id;
+
+        const char* sql = "DELETE FROM expenses WHERE id = ?;";
+        sqlite3_stmt* stmt;
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+            std::cerr << "Failed to prepare delete statement\n";
+            return;
         }
+
+        sqlite3_bind_int(stmt, 1, id);
+
+        if (sqlite3_step(stmt) != SQLITE_DONE)
+            std::cerr << "Failed to delete expense\n";
+        else if (sqlite3_changes(db) == 0) // checks how many rows were changed
+            std::cout << "No expense found with ID " << id << "\n";
+        else
+            std::cout << "Expense deleted successfully!\n";
 
         sqlite3_finalize(stmt);
     }
 
-    static int callback(void*, int argc, char** argv, char** colName) {
-        for (int i = 0; i < argc; i++) {
-            std::cout << colName[i] << ": "
-                      << (argv[i] ? argv[i] : "NULL") << " | ";
+    void exportToCSV() {
+        std::ofstream file("expense.csv"); // creates and opens the file for writing 
+        if (!file.is_open()) {
+            std::cerr << "Failed to create CSV file\n";
+            return;
         }
+
+        const char* sql = "SELECT * FROM expenses";
+        sqlite3_stmt* stmt;
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+            std::cerr << "Query failed\n";
+            return;
+        }
+
+        file << "Id,Amount,Category,Description,Date\n";
+        file << std::fixed << std::setprecision(2); // makes so numbers like 20.5 becomes 20.50
+
+        // loops through our table and insterts them
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            file << sqlite3_column_int(stmt, 0)    << ","
+                 << sqlite3_column_double(stmt, 1)  << ","
+                 << sqlite3_column_text(stmt, 2)    << ","
+                 << sqlite3_column_text(stmt, 3)    << ","
+                 << sqlite3_column_text(stmt, 4)    << "\n";
+        }
+
+        sqlite3_finalize(stmt);
+        std::cout << "Expenses exported to expense.csv\n";
+    }
+
+    void exportToJSON() {
+        std::ofstream file("expense.json");
+        if (!file.is_open()) {
+            std::cerr << "Failed to create JSON file\n";
+            return;
+        }
+
+        const char* sql = "SELECT * FROM expenses";
+        sqlite3_stmt* stmt;
+
+        if (sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+            std::cerr << "Query failed\n";
+            return;
+        }
+
+        file << std::fixed << std::setprecision(2);
+        file << "[\n";
+
+        bool first = true;
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            if (!first) file << ",\n";
+            first = false;
+
+            file << "  {\n"
+                 << "    \"id\": "          << sqlite3_column_int(stmt, 0)    << ",\n"
+                 << "    \"amount\": "      << sqlite3_column_double(stmt, 1)  << ",\n"
+                 << "    \"category\": \""  << sqlite3_column_text(stmt, 2)    << "\",\n"
+                 << "    \"description\": \""<< sqlite3_column_text(stmt, 3)   << "\",\n"
+                 << "    \"date\": \""      << sqlite3_column_text(stmt, 4)    << "\"\n"
+                 << "  }";
+        }
+
+        file << "\n]\n";
+        sqlite3_finalize(stmt);
+        std::cout << "Expenses exported to expense.json\n";
+    }
+
+    void plotGraph() {
+        std::cout << "Generating graph...\n";
+        exportToCSV();
+        if (system("\".venv\\Scripts\\python.exe\" plot_expenses.py") != 0) {
+            std::cerr << "Error running Python script.\n"
+                      << "Make sure Python is installed and the virtual environment is set up.\n";
+        }
+    }
+
+private:
+    // the callback runs for every row returned by sqlite3_exec Source: Trust me bro
+    static int callback(void*, int argc, char** argv, char** colName) {
+        for (int i = 0; i < argc; i++)
+            std::cout << colName[i] << ": " << (argv[i] ? argv[i] : "NULL") << " | ";
         std::cout << "\n";
         return 0;
-        }
-
-
-        // Expenses view garna ko lagi
-        void viewAll() {
-            char* err = nullptr;
-                if (sqlite3_exec(db, "SELECT * FROM expenses;", callback, nullptr, &err) != SQLITE_OK) {
-                    std::cerr << "Select error: " << (err ? err : "unknown") << "\n";
-                    sqlite3_free(err);
-                }
-            }
-        
-        
-        void deleteExpense(){
-            int c;
-            std::cout<<"Enter the expense id to delete: ";
-            std::cin>>c;
-            const char* sql = "DELETE FROM expenses WHERE id = ?;";
-            sqlite3_stmt* stmt;
-            sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
-            sqlite3_bind_int(stmt, 1, c);
-            sqlite3_step(stmt);
-            sqlite3_changes(db);
-            sqlite3_finalize(stmt);
-        }
-
-        void exportToCSV(){
-            std::ofstream file ("expense.csv");
-            if (!file.is_open()){
-                std::cout<<"Failed to create CSV file \n";
-                return;
-            }
-            file << "Id,amount,category,description,date\n";
-            const char* sql = "SELECT * FROM expenses";
-            sqlite3_stmt* stmt;
-            if (sqlite3_prepare_v2(db,sql,-1,&stmt,nullptr) != SQLITE_OK)
-            {
-                std::cout<<"Query Failed\n";
-                return;
-            }
-            file << std::fixed << std::setprecision(2);
-            while (sqlite3_step(stmt) == SQLITE_ROW)
-            {
-                file<<sqlite3_column_int(stmt, 0) << ","
-            << sqlite3_column_double(stmt, 1) << ","
-            << sqlite3_column_text(stmt, 2) << ","
-            << sqlite3_column_text(stmt, 3) << ","
-            << sqlite3_column_text(stmt, 4) << "\n";
-            }
-            sqlite3_finalize(stmt);
-            file.close();
-            std::cout<<"Expenses exported to CSV";  
-        }
-        void exportToJSON(){
-            std::ofstream file ("expense.json");
-            if (!file.is_open()){
-                std::cout<<"Failed to create JSON file \n";
-                return;
-            }
-            const char* sql = "SELECT * FROM expenses";
-            sqlite3_stmt* stmt;
-            if (sqlite3_prepare_v2(db,sql,-1,&stmt,nullptr) != SQLITE_OK)
-            {
-                std::cout<<"Query Failed\n";
-                return;
-            }
-           file << "[\n";
-           bool firstComma = true;
-           file << std::fixed << std::setprecision(2);
-           while (sqlite3_step(stmt) == SQLITE_ROW)
-           {
-                if (!firstComma)
-                {
-                    file << ",\n";
-                }
-                firstComma = false;
-
-                file << "  {\n";
-                file << "    \"id\": " << sqlite3_column_int(stmt, 0) << ",\n";
-                file << "    \"amount\": " << sqlite3_column_double(stmt, 1) << ",\n";
-                file << "    \"category\": \"" << sqlite3_column_text(stmt, 2) << "\",\n";
-                file << "    \"description\": \"" << sqlite3_column_text(stmt, 3) << "\",\n";
-                file << "    \"date\": \"" << sqlite3_column_text(stmt, 4) << "\"\n";
-                file << "  }";
-                
-           }
-           file<<"\n]\n";
-           sqlite3_finalize(stmt);
-           file.close();
-
-           std::cout<<"Expenses exported to expense.json";
-            
-        }
-
-        void plotGraph(){
-            std::cout<< "Generating graphs....\n";
-            exportToCSV();
-            int result = system("python plot_expenses.py");
-            if (result != 0) {
-                std::cout << "Error running Python script.\n";
-                std::cout << "Make sure Python is installed and added to PATH.\n";
-            }
-        }
+    }
 };
-
-
 
 int main() {
     if (!openDatabase("expenses.db")) return 1;
     if (!createTable()) { closeDatabase(); return 1; }
 
-    // // quick test insert
-    // if (!insertExpense(25.5, "Groceries", "Milk and eggs", "2026-02-23")) {
-    //     std::cerr << "Insert failed\n";
-    // }
-    ExpenseClass obj;
+    ExpenseManager manager;
     int choice;
 
     while (true) {
-        std::cout << "\n--- Expense Manager ---\n";
-        std::cout << "1. Add Expense\n";
-        std::cout << "2. View All Expense\n";
-        std::cout << "3. Delete Expense\n";
-        std::cout << "4. Export expense to CSV\n";
-        std::cout << "5. Export expense to JSON\n";
-        std::cout << "6. Plot graph\n";  
-        std::cout << "7. Exit\n";
-        std::cout << "Choose an option: ";
+        std::cout << "\n--- Expense Manager ---\n"
+                  << "1. Add Expense\n"
+                  << "2. View All Expenses\n"
+                  << "3. Delete Expense\n"
+                  << "4. Export to CSV\n"
+                  << "5. Export to JSON\n"
+                  << "6. Plot Graph\n"
+                  << "7. Exit\n"
+                  << "Choose an option: ";
         std::cin >> choice;
 
-        if (choice == 7) {
-            std::cout << "Exiting program...\n";
-            break;
-        }
-
         switch (choice) {
-            case 1: {
-                obj.addexpense();
-                break;
-            }
-            case 2: {
-                obj.viewAll();
-                break;
-            }
-            case 3:
-                obj.deleteExpense();
-                break;
-            case 4: {
-                obj.exportToCSV();
-                break;
-            }
-            case 5: {
-                obj.exportToJSON();
-                break;
-            }
-            case 6: {
-                obj.plotGraph();
-                break;
-            }
+            case 1: manager.addExpense();    break;
+            case 2: manager.viewAll();       break;
+            case 3: manager.deleteExpense(); break;
+            case 4: manager.exportToCSV();   break;
+            case 5: manager.exportToJSON();  break;
+            case 6: manager.plotGraph();     break;
+            case 7:
+                std::cout << "Exiting program...\n";
+                closeDatabase();
+                return 0;
             default:
-                std::cout << "Invalid choice! Try again.\n";
+                std::cout << "Invalid choice. Try again.\n";
                 break;
         }
     }
-
-
-    // std::cout << "Current rows:\n";
-    // viewAll();
-
-    closeDatabase();
-    return 0;
 }
