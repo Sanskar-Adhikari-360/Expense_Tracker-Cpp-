@@ -36,7 +36,8 @@ Before installing this project you must have the following installed:
 
 1. Clone the repository:
 
-   ```git clone https://github.com/yourusername/expense-tracker.git
+   ```
+    git clone https://github.com/Sanskar-Adhikari-360/Expense_Tracker-Cpp-.git
     cd expense-tracker
    ```
 
