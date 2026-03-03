@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 df = pd.read_csv("expense.csv")
-category_total = df.groupby("category")["amount"].sum()
+category_total = df.groupby("Category")["Amount"].sum()
 
 
 plt.figure(figsize=(12,5))
@@ -38,7 +38,3 @@ plt.gca().yaxis.get_major_formatter().set_scientific(False)
 
 plt.tight_layout()
 plt.show()
-
-
-print(df.dtypes)
-print(category_total)
