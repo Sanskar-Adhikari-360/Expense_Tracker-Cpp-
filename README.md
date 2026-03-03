@@ -24,9 +24,13 @@ Before installing this project you must have the following installed:
 
 - Python dependencies:
   For pip
-  `pip install pandas matplotlib`
+  ```
+  pip install pandas matplotlib
+  ```
   For uv
-  `uv add pandas matplotlib`
+  ```
+  uv add pandas matplotlib
+  ```
 
 ## Installing
 
