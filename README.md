@@ -55,10 +55,13 @@ Before installing this project you must have the following installed:
 ## Demo
 
 1. Adding a new entry
+   
    ![Screenshot of adding new record](assets/screenshots/add.png)
 
-2. Viewing the entry
+3. Viewing the entry
+   
    ![Screenshot of viewing the records](assets/screenshots/view.png)
 
-3. Plotting Graph
+5. Plotting Graph
+
    ![Screenshot of plotting the graph](assets/screenshots/graph.png)
